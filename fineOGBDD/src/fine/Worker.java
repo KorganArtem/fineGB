@@ -10,6 +10,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -54,7 +55,14 @@ public class Worker {
             try {
                 JsonObject jo = jsonMaker(EntityUtils.toString(entity));
                 System.out.println(jo);
-                //parseFine(jo, carID);
+                //parseFine(jo, carID);JsonArray allFine = fineCar.getAsJsonArray("auto_list").get(0).getAsJsonArray();
+//                JsonArray allCar = (JsonArray) jo.get("dat");
+                //JsonObject listCar = 
+                        jo.getAsJsonObject("data").get("autos");
+//                for(int i=0; i<allCar.size(); i++){
+//                    JsonObject oneFine = allCar.get(i).getAsJsonObject();
+//                    System.out.println(oneFine);
+//                }
             } finally {
                 instream.close();
             } 
@@ -122,19 +130,17 @@ public class Worker {
             } 
         }
     }
-    private void parseFine(JsonObject fineCar) throws ClassNotFoundException, SQLException{
-        File fl = new File("C:/out.json");
-        
-        System.out.println("--->>>"+fineCar.getAsJsonObject("auto_list").get("0"));
-        System.out.println("--->>>"+fineCar.getAsJsonObject("auto_list").get("1"));
-        System.out.println("--->>>"+fineCar.getAsJsonObject("auto_list").get("2"));
-        System.out.println("--->>>"+fineCar.getAsJsonObject("auto_list").get("3"));
-        System.out.println("--->>>"+fineCar.getAsJsonObject("auto_list").get("4"));
-//        JsonArray allFine = fineCar.getAsJsonArray("auto_list").get(0).getAsJsonArray();
-//        for(int i=0; i<allFine.size(); i++){
-//            JsonObject oneFine = allFine.get(i).getAsJsonObject();
-//            System.out.println(oneFine);
-//        }
+    private void parseFine(JsonObject fineCar) throws ClassNotFoundException, SQLException, IOException{
+        File fl = new File("C:\\table\\out.json");
+        FileWriter write = new FileWriter(fl);
+        write.write(fineCar.toString());
+        System.out.println("--->>>"+fineCar.get("auto_list"));
+        //System.out.println("--->>>"+fineCar.getAsJsonObject("auto_list").get("4"));
+        JsonArray allFine = fineCar.get("auto_list").getAsJsonArray();
+        for(int i=0; i<allFine.size(); i++){
+            JsonObject oneFine = allFine.get(i).getAsJsonObject();
+            System.out.println(oneFine);
+        }
             
     }
 }

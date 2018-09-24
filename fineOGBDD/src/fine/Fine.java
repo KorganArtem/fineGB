@@ -27,7 +27,7 @@ public class Fine {
         // TODO code application logic here
         Worker wrk = new Worker();
         //wrk.addCare();
-        //wrk.getAllCarList();
-        wrk.getAllFine();
+        wrk.getAllCarList();
+        //wrk.getAllFine();
     }
 }
