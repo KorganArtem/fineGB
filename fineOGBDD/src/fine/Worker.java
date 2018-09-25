@@ -9,7 +9,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TimeZone;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -42,7 +40,7 @@ public class Worker {
     SimpleDateFormat formating = new SimpleDateFormat("HH:mm:ss");
     String sid=null;
     String token = "t524MQjsBPSLYrgms6Dn";
-    public Map<String, Map> getAllCarList() throws UnsupportedEncodingException, IOException, ClassNotFoundException, SQLException{
+    public Map<String, String> getAllCarList() throws UnsupportedEncodingException, IOException, ClassNotFoundException, SQLException{
         HttpClient httpclient = HttpClients.createDefault();
         HttpPost httppost = new HttpPost("https://onlinegibdd.ru/api/partner_auto");
         // Request parameters and other properties.
@@ -53,6 +51,7 @@ public class Worker {
         //Execute and get the response.
         HttpResponse response = httpclient.execute(httppost);
         HttpEntity entity = response.getEntity();
+         Map<String, String> carListOGBDD = new HashMap<String, String>();
         if (entity != null) {
             InputStream instream = entity.getContent();
             try {
@@ -62,24 +61,17 @@ public class Worker {
                 
                 Set<Entry<String, JsonElement>> entrySet = carList.entrySet();
                 for(Map.Entry<String,JsonElement> entry : entrySet){
-                    System.out.println(carList.get(entry.getKey()).getAsJsonObject().get("auto_number").getAsString()
-                    +carList.get(entry.getKey()).getAsJsonObject().get("auto_region").getAsString());
-                    carFine(carList.get(entry.getKey()).getAsJsonObject().get("auto_id").getAsString());
+                    String carIdOGBDD = carList.get(entry.getKey()).getAsJsonObject().get("auto_id").getAsString();
+                    String carStsOGBDD = carList.get(entry.getKey()).getAsJsonObject().get("auto_cdi").getAsString();
+                    carListOGBDD.put(carIdOGBDD, carStsOGBDD);
                 }
-
             } finally {
                 instream.close();
             } 
         }
-        return null;
+        return carListOGBDD;
     }
-    private JsonObject jsonMaker(String inputString){
-        JsonParser parser = new JsonParser();
-        JsonObject jsonObj;
-        jsonObj = (JsonObject) parser.parse(inputString);
-        return jsonObj;
-    }
-    public void addCare() throws UnsupportedEncodingException, IOException{
+    public void addCare(Map<String, String> carData) throws UnsupportedEncodingException, IOException{
         
         HttpClient httpclient = HttpClients.createDefault();
         HttpPost httppost = new HttpPost("https://onlinegibdd.ru/api/partner_auto/save");
@@ -88,10 +80,10 @@ public class Worker {
         params.add(new BasicNameValuePair("token", token));        
         params.add(new BasicNameValuePair("group_id", "1"));
         params.add(new BasicNameValuePair("auto_type", "firstCare"));
-        params.add(new BasicNameValuePair("auto_number", "Н639СВ"));
-        params.add(new BasicNameValuePair("auto_region", "750"));
+        params.add(new BasicNameValuePair("auto_number", carData.get("auto_number")));
+        params.add(new BasicNameValuePair("auto_region", carData.get("auto_region")));
         params.add(new BasicNameValuePair("madi", "0"));
-        params.add(new BasicNameValuePair("auto_cdi", "5058821218"));
+        params.add(new BasicNameValuePair("auto_cdi", carData.get("auto_cdi")));
         params.add(new BasicNameValuePair("inn", "7723390010"));
         params.add(new BasicNameValuePair("kpp", "772701001"));
         httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
@@ -176,5 +168,37 @@ public class Worker {
             System.out.println(oneFine);
         }
             
+    }
+    public void starter() throws ClassNotFoundException, SQLException, IOException{
+        SQLFunction sqlf = new SQLFunction();
+        Map<Integer, String> calListRTS = sqlf.getAllCars();
+        Map<String, String> carListOGBDD = getAllCarList();
+        for (Entry<String, String> entry : carListOGBDD.entrySet()) {
+            int carId = sqlf.getCarId(entry.getValue());
+            System.out.println("IDOGBDD = " + entry.getKey() + " STS = " + entry.getValue()+ " IDRTS ="+ carId);
+            calListRTS.remove(carId);
+            try{
+                carFine(entry.getKey());
+                Thread.sleep(1000);
+            }
+            catch(Exception ex){
+                System.out.println(ex.getMessage());
+            }
+        }
+        System.out.println(calListRTS.size());
+        checkCarsNotMonit(calListRTS);
+    }
+    private void checkCarsNotMonit(Map<Integer, String> carList ) throws ClassNotFoundException, SQLException, IOException{
+        SQLFunction sqlf = new SQLFunction();
+        for (Entry<Integer, String> entry : carList.entrySet()) {
+            System.out.println(entry.getKey()+"   "+entry.getValue());
+            addCare(sqlf.getCarData(entry.getKey().intValue()));
+        }
+    }
+    private JsonObject jsonMaker(String inputString){
+        JsonParser parser = new JsonParser();
+        JsonObject jsonObj;
+        jsonObj = (JsonObject) parser.parse(inputString);
+        return jsonObj;
     }
 }

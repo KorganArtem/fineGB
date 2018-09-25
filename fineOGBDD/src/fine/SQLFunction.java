@@ -40,11 +40,12 @@ public class SQLFunction {
         {
             System.out.println("Mysql ERROR: "+ex.getMessage());
         }
+        System.out.println(url);
     }
-    public Map getAllCars() throws SQLException{
+    public Map<Integer, String> getAllCars() throws SQLException{
         Map<Integer, String> cars = new HashMap();
         Statement st = con.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM cars LIMIT 10");
+        ResultSet rs = st.executeQuery("SELECT * FROM cars");
         while(rs.next()){
             cars.put(rs.getInt("id"), rs.getString("number")+"/"+rs.getString("sts"));
         }
@@ -69,5 +70,27 @@ public class SQLFunction {
                 + "fineState='"+fineData.get("fineState")+"', "
                 + "fineDatePay='"+fineData.get("fineDatePay")+"'");
         st.close();
+    }
+    public int getCarId(String sts) throws SQLException{
+        int carId = 0;
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM cars WHERE sts like '%"+sts+"%'");
+        if(rs.next()){
+            carId = rs.getInt("id");
+        }
+        return carId;
+    }
+    public Map<String, String> getCarData(int carId) throws SQLException{
+        Map<String, String> carData = new HashMap<String, String>();
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM cars WHERE `id`="+carId);
+        if(rs.next()){
+            String reg = rs.getString("number").substring(rs.getString("number").length()-3);
+            String numb = rs.getString("number").substring(0, rs.getString("number").length()-3);
+            carData.put("auto_number", numb);
+            carData.put("auto_region", reg);
+            carData.put("auto_cdi", rs.getString("sts"));
+        }
+        return carData;
     }
 }
