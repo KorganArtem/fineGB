@@ -6,6 +6,7 @@
 package fine;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
@@ -20,6 +21,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TimeZone;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -54,15 +57,16 @@ public class Worker {
             InputStream instream = entity.getContent();
             try {
                 JsonObject jo = jsonMaker(EntityUtils.toString(entity));
-                System.out.println(jo);
-                //parseFine(jo, carID);JsonArray allFine = fineCar.getAsJsonArray("auto_list").get(0).getAsJsonArray();
-//                JsonArray allCar = (JsonArray) jo.get("dat");
-                //JsonObject listCar = 
-                        jo.getAsJsonObject("data").get("autos");
-//                for(int i=0; i<allCar.size(); i++){
-//                    JsonObject oneFine = allCar.get(i).getAsJsonObject();
-//                    System.out.println(oneFine);
-//                }
+                JsonObject carList = jo.getAsJsonObject("data").get("autos").getAsJsonObject();
+                System.out.println(carList); 
+                
+                Set<Entry<String, JsonElement>> entrySet = carList.entrySet();
+                for(Map.Entry<String,JsonElement> entry : entrySet){
+                    System.out.println(carList.get(entry.getKey()).getAsJsonObject().get("auto_number").getAsString()
+                    +carList.get(entry.getKey()).getAsJsonObject().get("auto_region").getAsString());
+                    carFine(carList.get(entry.getKey()).getAsJsonObject().get("auto_id").getAsString());
+                }
+
             } finally {
                 instream.close();
             } 
@@ -106,13 +110,43 @@ public class Worker {
             } 
         }
     }
-
-    void getAllFine() throws IOException, ClassNotFoundException, SQLException {
+    void carFine(String carId) throws UnsupportedEncodingException, IOException, ClassNotFoundException, SQLException{
         HttpClient httpclient = HttpClients.createDefault();
         HttpPost httppost = new HttpPost("https://api.onlinegibdd.ru/v2/partner_fines");
         // Request parameters and other properties.
         List<NameValuePair> params = new ArrayList<NameValuePair>(2);
+        System.out.println(carId);
         params.add(new BasicNameValuePair("token", token));
+        params.add(new BasicNameValuePair("autos_ids", carId)); 
+        httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+
+        //Execute and get the response.
+        HttpResponse response = httpclient.execute(httppost);
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            InputStream instream = entity.getContent();
+            try {
+                JsonObject jo = jsonMaker(EntityUtils.toString(entity));
+                if(jo.getAsJsonObject("auto_list").size()>0){
+                    JsonObject fineList = jo.getAsJsonObject("auto_list").getAsJsonObject("0").getAsJsonObject("offense_list");
+                    
+                    Set<Entry<String, JsonElement>> entrySet = fineList.entrySet();
+                    for(Map.Entry<String,JsonElement> entry : entrySet){
+                        //carFine(fineList.get(entry.getKey()).getAsJsonObject().get("auto_id").getAsString());
+                        System.out.println(fineList.get(entry.getKey()));
+                    }
+                }
+                //parseFine(jo, carID);
+            } finally {
+                instream.close();
+            } 
+        }
+    }
+    void getAllFine() throws IOException, ClassNotFoundException, SQLException {
+        HttpClient httpclient = HttpClients.createDefault();
+        HttpPost httppost = new HttpPost("https://api.onlinegibdd.ru/v2/partner_fines");
+        List<NameValuePair> params = new ArrayList<NameValuePair>(2);
+        params.add(new BasicNameValuePair("token", token)); //autos_ids=123,
         httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
 
         //Execute and get the response.
