@@ -93,4 +93,43 @@ public class SQLFunction {
         }
         return carData;
     }
+    public void checkAndWrite(Map<String, String> fine) throws SQLException{
+        System.out.println("Will check fine "+fine.get("bill_id"));
+        if(chechFine(fine.get("bill_id"))){
+            
+        }
+        else{
+            Statement st = con.createStatement();
+            String query ="INSERT INTO `offenses` SET `bill_id`='"+fine.get("bill_id")+"', "
+                                        +"`gis_status`='"+fine.get("gis_status")+"', "  
+                                        +"`pay_bill_date`='"+fine.get("pay_bill_date")+"', "  
+                                        +"`last_bill_date`='"+fine.get("last_bill_date")+"', "  
+                                        +"`pay_bill_amount`='"+fine.get("pay_bill_amount")  +"', "
+                                        +"`gis_discount`='"+fine.get("gis_discount")  +"', "
+                                        +"`gis_discount_uptodate`='"+fine.get("gis_discount_uptodate")  +"', "
+                                        +"`pay_bill_amount_with_discount`='"+fine.get("pay_bill_amount_with_discount")  +"', "
+                                        +"`offense_location`='"+fine.get("offense_location")  +"', "
+                                        +"`offense_article`='"+fine.get("offense_article")  +"', "
+                                        +"`offense_date`='"+fine.get("offense_date")  +"', "
+                                        +"`offense_time`='"+fine.get("offense_time")  +"', "
+                                        +"`offense_article_number`='"+fine.get("offense_article_number")  +"', "
+                                        +"`json`='"+fine.get("json")  +"', "
+                                        +"`carId`='"+fine.get("carId")+"' "  ;
+            System.out.println(query);
+            st.execute(query);
+        }
+    }
+    public boolean chechFine(String billId) throws SQLException{
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT `bill_id` FROM `offenses` WHERE `bill_id`='"+billId+"'");
+        if(rs.next()){
+            rs.close();
+            st.close();
+            return true;
+        } else{
+            rs.close();
+            st.close();
+            return false;
+        }
+    }
 }

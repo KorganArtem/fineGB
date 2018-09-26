@@ -23,7 +23,7 @@ public class Fine {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException, InterruptedException {
         // TODO code application logic here
         Worker wrk = new Worker();
         //wrk.addCare();
