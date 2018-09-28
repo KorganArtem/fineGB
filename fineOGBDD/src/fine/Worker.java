@@ -112,7 +112,8 @@ public class Worker {
         // Request parameters and other properties.
         List<NameValuePair> params = new ArrayList<NameValuePair>(2);
         params.add(new BasicNameValuePair("token", token));
-        params.add(new BasicNameValuePair("autos_ids", carId)); 
+        params.add(new BasicNameValuePair("autos_ids", carId));         
+        params.add(new BasicNameValuePair("status", "all")); 
         httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
 
         //Execute and get the response.
@@ -139,7 +140,7 @@ public class Worker {
     }
     private void sendToSQL(JsonObject fineJson, int carId) throws ClassNotFoundException{
         System.out.println("Check fine"+fineJson.get("bill_id").getAsString()+" \n\t"+fineJson.get("offense_location").getAsString());
-        /*Map<String, String> fine = new HashMap<String, String>();
+        Map<String, String> fine = new HashMap<String, String>();
             fine.put("bill_id", fineJson.get("bill_id").getAsString()); 
         try{ 
             fine.put("gis_status", fineJson.get("gis_status").getAsString());  
@@ -160,7 +161,7 @@ public class Worker {
         }
         catch(Exception ex){
             System.out.println("Error in sendToSQL: "+ex.getMessage());
-        }*/
+        }
     }
     public void starter() throws ClassNotFoundException, SQLException, IOException, InterruptedException{
         Map<Integer, String> calListRTS = sqlf.getAllCars();

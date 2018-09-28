@@ -28,6 +28,8 @@ public class Fine {
         Worker wrk = new Worker();
         //wrk.addCare();
         wrk.starter();
+        SQLFunction sqlf = new SQLFunction();
+        sqlf.fineSorter();
         //wrk.getAllFine();
     }
 }

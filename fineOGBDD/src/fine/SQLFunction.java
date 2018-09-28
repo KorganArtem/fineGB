@@ -96,7 +96,9 @@ public class SQLFunction {
     public void checkAndWrite(Map<String, String> fine) throws SQLException{
         System.out.println("Will check fine "+fine.get("bill_id"));
         if(chechFine(fine.get("bill_id"))){
-            
+            System.out.println("I will update state fine");
+            Statement st = con.createStatement();
+            st.execute("UPDATE `offenses` SET `gis_status`='"+fine.get("gis_status")+"' WHERE `bill_id`='"+fine.get("bill_id")+"'");
         }
         else{
             Statement st = con.createStatement();
@@ -131,5 +133,32 @@ public class SQLFunction {
             st.close();
             return false;
         }
+    }
+    public void fineSorter() throws SQLException{
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM `offenses` WHERE `driverId` IS NULL");
+        while(rs.next()){
+            System.out.println(rs.getString("bill_id")+ "  carId:"+rs.getInt("carId")+ "  fineDate:"+rs.getString("offense_date"));
+            int driverId = getDriver(rs.getInt("carId"), rs.getString("offense_date"));
+            updateDriverId(rs.getString("bill_id"), driverId);
+        }
+    }
+    private int getDriver(int carId, String date) throws SQLException{
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM carsChangeLog where carId="+carId+" and changeDate < '" +date+ "' ORDER BY changeDate DESC LIMIT 1");
+        if(rs.next()){
+            System.out.println(rs.getInt("driverId")+ "   " +rs.getInt("carId")+"   " +rs.getString("changeDate"));
+            int driverId = rs.getInt("driverId");
+            rs.close();
+            st.close();
+            return driverId;
+        }
+        rs.close();
+        st.close();
+        return 0;
+    }
+    private void updateDriverId(String bill_id, int driverId) throws SQLException{
+        Statement st = con.createStatement();
+        st.execute("UPDATE offenses SET driverId="+driverId+" WHERE bill_id='"+bill_id+"'");
     }
 }
