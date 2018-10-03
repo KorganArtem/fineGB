@@ -195,7 +195,7 @@ public class Worker {
         jsonObj = (JsonObject) parser.parse(inputString);
         return jsonObj;
     }
-    public void offendPhoto(String bill_id) throws UnsupportedEncodingException, IOException, ClassNotFoundException, SQLException{
+    public void offendPhoto(String bill_id, String pathParam) throws UnsupportedEncodingException, IOException, ClassNotFoundException, SQLException{
         HttpClient httpclient = HttpClients.createDefault();
         HttpPost httppost = new HttpPost("https://api.onlinegibdd.ru/partner_fines/get_photos");
         // Request parameters and other properties.
@@ -222,8 +222,8 @@ public class Worker {
                     ByteArrayInputStream bis = new ByteArrayInputStream(imageByte);
                     image = ImageIO.read(bis);
                     bis.close();
-                    File outputfile = new File("photo/"+bill_id+"_"+photoNum+".png");
-                    sqlf.photoWrite(bill_id, outputfile.getAbsoluteFile().toString());
+                    File outputfile = new File(pathParam+bill_id+"_"+photoNum+".png");
+                    sqlf.photoWrite(bill_id, outputfile.getAbsoluteFile().toString(), outputfile.getName());
                     ImageIO.write(image, "png", outputfile);
                 }
                 sqlf.setPhotoGeted(bill_id);

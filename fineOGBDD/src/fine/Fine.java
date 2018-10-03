@@ -28,7 +28,10 @@ public class Fine {
         Worker wrk = new Worker();
         //wrk.starter();
         SQLFunction sqlf = new SQLFunction();
-        //sqlf.fineSorter();
-        sqlf.fineList();
+        sqlf.fineSorter();
+        for(int ind=0; ind < args.length; ind++){
+            if(args[ind].equals("-i"))
+                sqlf.fineList(args[ind+1]);
+        }
     }
 }

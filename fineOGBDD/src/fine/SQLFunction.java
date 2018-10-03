@@ -158,23 +158,24 @@ public class SQLFunction {
         Statement st = con.createStatement();
         st.execute("UPDATE offenses SET driverId="+driverId+" WHERE bill_id='"+bill_id+"'");
     }
-    public void fineList() throws SQLException, ClassNotFoundException, IOException{
+    public void fineList(String pathParam) throws SQLException, ClassNotFoundException, IOException{
+        System.out.println(pathParam);
         Statement st = con.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM `offenses` WHERE photo=0");
+        ResultSet rs = st.executeQuery("SELECT * FROM `offenses` WHERE photo=0 LIMIT 100");
         Worker wrk = new Worker();
         while(rs.next()){
             try{
-            wrk.offendPhoto(rs.getString("bill_id"));
+            wrk.offendPhoto(rs.getString("bill_id"), pathParam);
             }
             catch(Exception ex){
                 System.out.println(ex.getMessage());
             }
         }
     }
-    public void photoWrite(String bill_id, String path) throws SQLException{
+    public void photoWrite(String bill_id, String path, String photoName) throws SQLException{
         path = path.replaceAll("\\\\","/");
         Statement st = con.createStatement();
-        st.execute("INSERT INTO offens_photo SET bill_id='"+bill_id+"', photoPath='"+path+"'");
+        st.execute("INSERT INTO offens_photo SET bill_id='"+bill_id+"', photoPath='"+path+"', photoName='"+photoName+"'");
     }
 
     void setPhotoGeted(String bill_id) throws SQLException {
