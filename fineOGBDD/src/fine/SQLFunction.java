@@ -5,6 +5,7 @@
  */
 package fine;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -94,9 +95,7 @@ public class SQLFunction {
         return carData;
     }
     public void checkAndWrite(Map<String, String> fine) throws SQLException{
-        System.out.println("Will check fine "+fine.get("bill_id"));
         if(chechFine(fine.get("bill_id"))){
-            System.out.println("I will update state fine");
             Statement st = con.createStatement();
             st.execute("UPDATE `offenses` SET `gis_status`='"+fine.get("gis_status")+"' WHERE `bill_id`='"+fine.get("bill_id")+"'");
         }
@@ -117,7 +116,6 @@ public class SQLFunction {
                                         +"`offense_article_number`='"+fine.get("offense_article_number")  +"', "
                                         +"`json`='"+fine.get("json")  +"', "
                                         +"`carId`='"+fine.get("carId")+"' "  ;
-            System.out.println(query);
             st.execute(query);
         }
     }
@@ -136,7 +134,7 @@ public class SQLFunction {
     }
     public void fineSorter() throws SQLException{
         Statement st = con.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM `offenses` WHERE `driverId` IS NULL");
+        ResultSet rs = st.executeQuery("SELECT * FROM `offenses` WHERE `driverId` IS NULL OR `driverId`=0");
         while(rs.next()){
             System.out.println(rs.getString("bill_id")+ "  carId:"+rs.getInt("carId")+ "  fineDate:"+rs.getString("offense_date"));
             int driverId = getDriver(rs.getInt("carId"), rs.getString("offense_date"));
@@ -147,7 +145,6 @@ public class SQLFunction {
         Statement st = con.createStatement();
         ResultSet rs = st.executeQuery("SELECT * FROM carsChangeLog where carId="+carId+" and changeDate < '" +date+ "' ORDER BY changeDate DESC LIMIT 1");
         if(rs.next()){
-            System.out.println(rs.getInt("driverId")+ "   " +rs.getInt("carId")+"   " +rs.getString("changeDate"));
             int driverId = rs.getInt("driverId");
             rs.close();
             st.close();
@@ -160,5 +157,28 @@ public class SQLFunction {
     private void updateDriverId(String bill_id, int driverId) throws SQLException{
         Statement st = con.createStatement();
         st.execute("UPDATE offenses SET driverId="+driverId+" WHERE bill_id='"+bill_id+"'");
+    }
+    public void fineList() throws SQLException, ClassNotFoundException, IOException{
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM `offenses` WHERE photo=0");
+        Worker wrk = new Worker();
+        while(rs.next()){
+            try{
+            wrk.offendPhoto(rs.getString("bill_id"));
+            }
+            catch(Exception ex){
+                System.out.println(ex.getMessage());
+            }
+        }
+    }
+    public void photoWrite(String bill_id, String path) throws SQLException{
+        path = path.replaceAll("\\\\","/");
+        Statement st = con.createStatement();
+        st.execute("INSERT INTO offens_photo SET bill_id='"+bill_id+"', photoPath='"+path+"'");
+    }
+
+    void setPhotoGeted(String bill_id) throws SQLException {
+        Statement st = con.createStatement();
+        st.execute("UPDATE  offenses SET photo=1 WHERE bill_id='"+bill_id+"'");
     }
 }

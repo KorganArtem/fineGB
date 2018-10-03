@@ -9,6 +9,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import javax.imageio.ImageIO;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -31,6 +34,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import sun.misc.BASE64Decoder;
 
 /**
  *
@@ -61,7 +65,6 @@ public class Worker {
             try {
                 JsonObject jo = jsonMaker(EntityUtils.toString(entity));
                 JsonObject carList = jo.getAsJsonObject("data").get("autos").getAsJsonObject();
-                System.out.println(carList); 
                 
                 Set<Entry<String, JsonElement>> entrySet = carList.entrySet();
                 for(Map.Entry<String,JsonElement> entry : entrySet){
@@ -139,7 +142,6 @@ public class Worker {
         }
     }
     private void sendToSQL(JsonObject fineJson, int carId) throws ClassNotFoundException{
-        System.out.println("Check fine"+fineJson.get("bill_id").getAsString()+" \n\t"+fineJson.get("offense_location").getAsString());
         Map<String, String> fine = new HashMap<String, String>();
             fine.put("bill_id", fineJson.get("bill_id").getAsString()); 
         try{ 
@@ -192,5 +194,47 @@ public class Worker {
         JsonObject jsonObj;
         jsonObj = (JsonObject) parser.parse(inputString);
         return jsonObj;
+    }
+    public void offendPhoto(String bill_id) throws UnsupportedEncodingException, IOException, ClassNotFoundException, SQLException{
+        HttpClient httpclient = HttpClients.createDefault();
+        HttpPost httppost = new HttpPost("https://api.onlinegibdd.ru/partner_fines/get_photos");
+        // Request parameters and other properties.
+        List<NameValuePair> params = new ArrayList<NameValuePair>(2);
+        params.add(new BasicNameValuePair("token", token));
+        params.add(new BasicNameValuePair("bill_id", bill_id));       
+        httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+        HttpResponse response = httpclient.execute(httppost);
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            JsonObject jo = jsonMaker(EntityUtils.toString(entity));
+            if(jo.has("photos")){
+                JsonObject photoList = jo.get("photos").getAsJsonObject();
+                Set<Entry<String, JsonElement>> entrySet = photoList.entrySet();
+                for(Map.Entry<String,JsonElement> entry : entrySet){
+                    String photoNum = entry.getKey();
+                    String sourceData = photoList.get(entry.getKey()).getAsString();
+                    if(sourceData.length()<10)
+                        continue;
+                    BufferedImage image = null;
+                    byte[] imageByte;
+                    BASE64Decoder decoder = new BASE64Decoder();
+                    imageByte = decoder.decodeBuffer(sourceData);
+                    ByteArrayInputStream bis = new ByteArrayInputStream(imageByte);
+                    image = ImageIO.read(bis);
+                    bis.close();
+                    File outputfile = new File("photo/"+bill_id+"_"+photoNum+".png");
+                    sqlf.photoWrite(bill_id, outputfile.getAbsoluteFile().toString());
+                    ImageIO.write(image, "png", outputfile);
+                }
+                sqlf.setPhotoGeted(bill_id);
+            }
+            else{
+                System.out.println(jo);
+                if(jo.has("errors")){
+                    if(jo.get("errors").getAsJsonObject().has("exist"))
+                        sqlf.setPhotoGeted(bill_id);
+                }
+            }
+        }
     }
 }
