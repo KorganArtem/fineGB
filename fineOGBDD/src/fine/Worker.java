@@ -5,14 +5,13 @@
  */
 package fine;
 
-import com.google.gson.JsonArray;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -131,7 +130,7 @@ public class Worker {
                     Set<Entry<String, JsonElement>> entrySet = fineList.entrySet();
                     for(Map.Entry<String,JsonElement> entry : entrySet){
                         //carFine(fineList.get(entry.getKey()).getAsJsonObject().get("auto_id").getAsString());
-                        System.out.println(fineList.get(entry.getKey()));
+                        //System.out.println(fineList.get(entry.getKey()));
                         sendToSQL(fineList.getAsJsonObject(entry.getKey()), carIdRTS);
                     }
                 }
@@ -170,6 +169,10 @@ public class Worker {
         Map<String, String> carListOGBDD = getAllCarList();
         for (Entry<String, String> entry : carListOGBDD.entrySet()) {
             int carId = sqlf.getCarId(entry.getValue());
+            if(carId==0){
+                System.err.println("Not our car!!!!");
+                continue;
+            }
             System.out.println("IDOGBDD = " + entry.getKey() + " STS = " + entry.getValue()+ " IDRTS ="+ carId);
             calListRTS.remove(carId);
             try{
@@ -224,6 +227,7 @@ public class Worker {
                     bis.close();
                     File outputfile = new File(pathParam+bill_id+"_"+photoNum+".png");
                     sqlf.photoWrite(bill_id, outputfile.getAbsoluteFile().toString(), outputfile.getName());
+                    System.out.println(outputfile.getAbsoluteFile().toString());
                     ImageIO.write(image, "png", outputfile);
                 }
                 sqlf.setPhotoGeted(bill_id);
@@ -231,8 +235,9 @@ public class Worker {
             else{
                 System.out.println(jo);
                 if(jo.has("errors")){
-                    if(jo.get("errors").getAsJsonObject().has("exist"))
+                    if(jo.get("errors").getAsJsonObject().has("exist")){
                         sqlf.setPhotoGeted(bill_id);
+                    }
                 }
             }
         }

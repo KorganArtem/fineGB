@@ -118,6 +118,32 @@ public class SQLFunction {
                                         +"`carId`='"+fine.get("carId")+"' "  ;
             st.execute(query);
         }
+        if(!chechFineData(fine.get("bill_id"))){
+            System.out.println("I WILL UPDATE DATA!");
+            Statement stUpdateData = con.createStatement();
+            String queryUpdateData ="UPDATE `offenses` SET "
+                                        
+                                        +"`offense_location`='"+fine.get("offense_location")  +"', "
+                                        +"`offense_article`='"+fine.get("offense_article")  +"', "
+                                        +"`offense_date`='"+fine.get("offense_date")  +"', "
+                                        +"`offense_time`='"+fine.get("offense_time")  +"', "
+                                        +"`offense_article_number`='"+fine.get("offense_article_number")  +"' "
+                    + "WHERE `bill_id`='"+fine.get("bill_id")+"'";
+            stUpdateData.execute(queryUpdateData);
+        }
+    }
+    public boolean chechFineData(String billId) throws SQLException{
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT `bill_id` FROM `offenses` WHERE `bill_id`='"+billId+"' AND offense_date!=''");
+        if(rs.next()){
+            rs.close();
+            st.close();
+            return true;
+        } else{
+            rs.close();
+            st.close();
+            return false;
+        }
     }
     public boolean chechFine(String billId) throws SQLException{
         Statement st = con.createStatement();
@@ -136,14 +162,15 @@ public class SQLFunction {
         Statement st = con.createStatement();
         ResultSet rs = st.executeQuery("SELECT * FROM `offenses` WHERE `driverId` IS NULL OR `driverId`=0");
         while(rs.next()){
-            System.out.println(rs.getString("bill_id")+ "  carId:"+rs.getInt("carId")+ "  fineDate:"+rs.getString("offense_date"));
-            int driverId = getDriver(rs.getInt("carId"), rs.getString("offense_date"));
+            //System.out.println(rs.getString("bill_id")+ "  carId:"+rs.getInt("carId")+ "  fineDate:"+rs.getString("offense_date"));
+            int driverId = getDriver(rs.getInt("carId"), rs.getString("offense_date"), rs.getString("offense_time"));
             updateDriverId(rs.getString("bill_id"), driverId);
+            addCharging(rs.getString("bill_id"), driverId, rs.getString("pay_bill_amount_with_discount"));
         }
     }
-    private int getDriver(int carId, String date) throws SQLException{
+    private int getDriver(int carId, String date, String time) throws SQLException{
         Statement st = con.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM carsChangeLog where carId="+carId+" and changeDate < '" +date+ "' ORDER BY changeDate DESC LIMIT 1");
+        ResultSet rs = st.executeQuery("SELECT * FROM carsChangeLog where carId="+carId+" and changeDate < '" +date+" "+time+ "' ORDER BY changeDate DESC LIMIT 1");
         if(rs.next()){
             int driverId = rs.getInt("driverId");
             rs.close();
@@ -177,9 +204,35 @@ public class SQLFunction {
         Statement st = con.createStatement();
         st.execute("INSERT INTO offens_photo SET bill_id='"+bill_id+"', photoPath='"+path+"', photoName='"+photoName+"'");
     }
-
     void setPhotoGeted(String bill_id) throws SQLException {
         Statement st = con.createStatement();
         st.execute("UPDATE  offenses SET photo=1 WHERE bill_id='"+bill_id+"'");
+    }
+
+    public void addCharging(String bill_id, int driverId, String offenseSum) throws SQLException{
+        double chargeSum = Double.parseDouble(offenseSum)*-1;
+        chargeSum=chargeSum-30;
+        Statement stGetDriverAndRent = con.createStatement();
+        ResultSet rsGetDriverAndRent = stGetDriverAndRent.executeQuery("SELECT `drivers`.*, TO_DAYS(current_date())-TO_DAYS(driverStartDate)+1 as `dayWork` FROM `drivers` "
+                + "WHERE `driver_deleted`=0  "
+               + "AND `driver_id`="+driverId);
+        if(rsGetDriverAndRent.next()){
+            System.out.println("Driver id = "+rsGetDriverAndRent.getInt("driver_id")+" Driver Last Name = "+rsGetDriverAndRent.getString("driver_lastname")+" offenceSum = "+chargeSum);
+            Statement stAddAccrual = con.createStatement();
+            double balanceNow = rsGetDriverAndRent.getInt("driver_current_debt")+chargeSum;
+            stAddAccrual.execute("INSERT INTO `pay` (`type`, `date`, `source`, `sum`, `driverId`, `balance`, `comment`, `user`) "
+                    + "VALUES ('4', NOW(), 11, '"+chargeSum+"', '"+rsGetDriverAndRent.getInt("driver_id")+"', "
+                            + ""+balanceNow+", '"+bill_id+"', 0)");
+            Statement stUpdateCurrentDebt = con.createStatement();
+            stUpdateCurrentDebt.execute("UPDATE `drivers` SET `driver_current_debt`=(SELECT sum(`sum`) FROM `pay` WHERE driverId="+rsGetDriverAndRent.getInt("driver_id")+" and type!=3) "
+                    + "WHERE `driver_id`="+rsGetDriverAndRent.getInt("driver_id"));
+            stAddAccrual.close();
+            stUpdateCurrentDebt.close();
+        }
+        rsGetDriverAndRent.close();
+        stGetDriverAndRent.close();
+        Statement stUnLock = con.createStatement();
+        stUnLock.execute("UPDATE `param` SET `paramValue` = '0'");
+        stUnLock.close();
     }
 }

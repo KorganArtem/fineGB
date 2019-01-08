@@ -26,7 +26,7 @@ public class Fine {
     public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException, InterruptedException {
         // TODO code application logic here
         Worker wrk = new Worker();
-        //wrk.starter();
+        wrk.starter();
         SQLFunction sqlf = new SQLFunction();
         sqlf.fineSorter();
         for(int ind=0; ind < args.length; ind++){
